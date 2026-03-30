@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "exportedAt": "2026-03-30T16:18:07.977Z",
+  "players": [
+    "EMQWATSONS",
+    "RAIN",
+    "KIRIRI",
+    "ALIESKOTA",
+    "バブ・ミーオギャ",
+    "LASTORDER",
+    "石丸小唄",
+    "ZUYA",
+    "にこらす",
+    "自由なイエティ"
+  ],
+  "matches": [
+    {
+      "id": 1774887426191,
+      "date": "2026-03-30",
+      "map": "Colosseo",
+      "teamA": {
+        "tank": "KIRIRI",
+        "dps1": "バブ・ミーオギャ",
+        "dps2": "にこらす",
+        "sup1": "RAIN",
+        "sup2": "自由なイエティ"
+      },
+      "teamB": {
+        "tank": "LASTORDER",
+        "dps1": "ALIESKOTA",
+        "dps2": "EMQWATSONS",
+        "sup1": "石丸小唄",
+        "sup2": "ZUYA"
+      },
+      "winner": "A"
+    },
+    {
+      "id": 1774887310558,
+      "date": "2026-03-30",
+      "map": "Watchpoint: Gibraltar",
+      "teamA": {
+        "tank": "ALIESKOTA",
+        "dps1": "EMQWATSONS",
+        "dps2": "KIRIRI",
+        "sup1": "自由なイエティ",
+        "sup2": "バブ・ミーオギャ"
+      },
+      "teamB": {
+        "tank": "RAIN",
+        "dps1": "ZUYA",
+        "dps2": "石丸小唄",
+        "sup1": "LASTORDER",
+        "sup2": "にこらす"
+      },
+      "winner": "A"
+    },
+    {
+      "id": 1774887249262,
+      "date": "2026-03-30",
+      "map": "Watchpoint: Gibraltar",
+      "teamA": {
+        "tank": "LASTORDER",
+        "dps1": "EMQWATSONS",
+        "dps2": "バブ・ミーオギャ",
+        "sup1": "にこらす",
+        "sup2": "自由なイエティ"
+      },
+      "teamB": {
+        "tank": "ZUYA",
+        "dps1": "ALIESKOTA",
+        "dps2": "石丸小唄",
+        "sup1": "KIRIRI",
+        "sup2": "RAIN"
+      },
+      "winner": "B"
+    },
+    {
+      "id": 1774887146281,
+      "date": "2026-03-30",
+      "map": "Suravasa",
+      "teamA": {
+        "tank": "石丸小唄",
+        "dps1": "KIRIRI",
+        "dps2": "バブ・ミーオギャ",
+        "sup1": "にこらす",
+        "sup2": "EMQWATSONS"
+      },
+      "teamB": {
+        "tank": "LASTORDER",
+        "dps1": "ZUYA",
+        "dps2": "ALIESKOTA",
+        "sup1": "自由なイエティ",
+        "sup2": "RAIN"
+      },
+      "winner": "B"
+    },
+    {
+      "id": 1774887085710,
+      "date": "2026-03-30",
+      "map": "Suravasa",
+      "teamA": {
+        "tank": "KIRIRI",
+        "dps1": "EMQWATSONS",
+        "dps2": "にこらす",
+        "sup1": "石丸小唄",
+        "sup2": "バブ・ミーオギャ"
+      },
+      "teamB": {
+        "tank": "LASTORDER",
+        "dps1": "ZUYA",
+        "dps2": "ALIESKOTA",
+        "sup1": "RAIN",
+        "sup2": "自由なイエティ"
+      },
+      "winner": "B"
+    },
+    {
+      "id": 1774887013190,
+      "date": "2026-03-30",
+      "map": "その他",
+      "teamA": {
+        "tank": "バブ・ミーオギャ",
+        "dps1": "EMQWATSONS",
+        "dps2": "ZUYA",
+        "sup1": "RAIN",
+        "sup2": "石丸小唄"
+      },
+      "teamB": {
+        "tank": "にこらす",
+        "dps1": "LASTORDER",
+        "dps2": "ALIESKOTA",
+        "sup1": "KIRIRI",
+        "sup2": "自由なイエティ"
+      },
+      "winner": "A"
+    },
+    {
+      "id": 1774886792157,
+      "date": "2026-03-30",
+      "map": "Oasis",
+      "teamA": {
+        "tank": "バブ・ミーオギャ",
+        "dps1": "にこらす",
+        "dps2": "KIRIRI",
+        "sup1": "ZUYA",
+        "sup2": "自由なイエティ"
+      },
+      "teamB": {
+        "tank": "LASTORDER",
+        "dps1": "EMQWATSONS",
+        "dps2": "ALIESKOTA",
+        "sup1": "RAIN",
+        "sup2": "石丸小唄"
+      },
+      "winner": "B"
+    },
+    {
+      "id": 1774886711941,
+      "date": "2026-03-30",
+      "map": "Oasis",
+      "teamA": {
+        "tank": "バブ・ミーオギャ",
+        "dps1": "LASTORDER",
+        "dps2": "にこらす",
+        "sup1": "RAIN",
+        "sup2": "ALIESKOTA"
+      },
+      "teamB": {
+        "tank": "ZUYA",
+        "dps1": "EMQWATSONS",
+        "dps2": "KIRIRI",
+        "sup1": "石丸小唄",
+        "sup2": "自由なイエティ"
+      },
+      "winner": "A"
+    },
+    {
+      "id": 1774886600535,
+      "date": "2026-03-30",
+      "map": "その他",
+      "teamA": {
+        "tank": "バブ・ミーオギャ",
+        "dps1": "EMQWATSONS",
+        "dps2": "ALIESKOTA",
+        "sup1": "KIRIRI",
+        "sup2": "RAIN"
+      },
+      "teamB": {
+        "tank": "LASTORDER",
+        "dps1": "自由なイエティ",
+        "dps2": "ZUYA",
+        "sup1": "にこらす",
+        "sup2": "石丸小唄"
+      },
+      "winner": "A"
+    }
+  ]
+}

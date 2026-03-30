@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OW カスタムマッチ トラッカー</title>
+<style>
+:root {
+  --bg:#0a0c14; --bg2:#111422; --bg3:#181c2e; --border:#2a2f4a;
+  --accent:#f5a623; --accent2:#4fc3f7; --team-a:#4fc3f7; --team-b:#f97316;
+  --win:#4ade80; --lose:#f87171; --text:#e2e8f0; --muted:#64748b;
+  --tank:#a78bfa; --dps:#f87171; --sup:#34d399;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+header{background:linear-gradient(135deg,#0d1b2a,#1a1f3a);border-bottom:2px solid var(--accent);padding:14px 24px;display:flex;align-items:center;gap:12px;}
+header h1{font-size:1.4rem;font-weight:700;letter-spacing:2px;color:var(--accent);}
+header .sub{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;}
+.tab{padding:11px 24px;font-size:0.85rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;user-select:none;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.view{display:none;padding:20px;max-width:1200px;margin:0 auto;}
+.view.active{display:block;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.sh h2{font-size:1.1rem;font-weight:700;color:var(--accent);}
+.frow{display:flex;gap:8px;flex-wrap:wrap;}
+.frow select{padding:6px 10px;font-size:0.82rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;outline:none;}
+.frow select:focus{border-color:var(--accent2);}
+/* table */
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+th{background:var(--bg3);padding:9px 10px;text-align:center;color:var(--muted);font-weight:600;font-size:0.7rem;letter-spacing:0.5px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(42,47,74,0.5);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.tt{color:var(--tank);font-weight:600;}.td{color:var(--dps);font-weight:600;}.ts{color:var(--sup);font-weight:600;}
+.wa{color:var(--team-a);font-weight:700;}.wb{color:var(--team-b);font-weight:700;}
+.mbadge{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:0.76rem;color:var(--accent2);}
+/* stats */
+.pcard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;}
+.pname{font-size:1rem;font-weight:700;margin-bottom:10px;}
+.rchips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{background:var(--bg3);border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:88px;border:1px solid var(--border);}
+.chip .rn{font-size:0.67rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.chip .wr{font-size:1.35rem;font-weight:700;line-height:1;}
+.chip .rc{font-size:0.7rem;color:var(--muted);}
+.wr.hi{color:var(--win);}.wr.mi{color:var(--accent);}.wr.lo{color:var(--lose);}
+.wbar{height:4px;background:var(--border);border-radius:2px;width:100%;margin-top:3px;overflow:hidden;}
+.wfill{height:100%;border-radius:2px;}
+/* pair */
+.paircard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.paircard:hover{border-color:var(--accent2);}
+.pairnames{display:flex;align-items:center;gap:10px;flex:1;min-width:200px;}
+.pvs{font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);}
+.pvs.en{color:var(--lose);border-color:var(--lose);background:rgba(248,113,113,0.06);}
+.pairstats{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.ps{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;}
+.ps .v{font-size:1.2rem;font-weight:700;line-height:1;}
+.ps .l{font-size:0.67rem;color:var(--muted);text-transform:uppercase;}
+.pwbar{flex:1;min-width:70px;max-width:120px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.pwfill{height:100%;border-radius:3px;}
+/* summary pills */
+.pills{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.pill{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 16px;}
+.pill .pv{font-size:1.1rem;font-weight:700;color:var(--text);}
+.pill .pl{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+/* empty / loading */
+.empty{text-align:center;padding:44px 0;color:var(--muted);font-size:0.88rem;}
+.empty .ei{font-size:2.2rem;margin-bottom:10px;}
+.loading{display:flex;align-items:center;justify-content:center;height:200px;color:var(--muted);font-size:0.9rem;gap:10px;}
+@media(max-width:640px){.sh{flex-direction:column;align-items:flex-start;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="font-size:1.5rem">⚔️</div>
+  <div>
+    <h1>OW CUSTOM TRACKER</h1>
+    <div class="sub">カスタムマッチ 記録・勝率管理</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('history')">📋 履歴</div>
+  <div class="tab" onclick="switchTab('stats')">📊 勝率</div>
+  <div class="tab" onclick="switchTab('pair')">🤝 ペア分析</div>
+</div>
+
+<!-- HISTORY -->
+<div id="view-history" class="view active">
+  <div class="sh">
+    <h2>MATCH HISTORY</h2>
+    <div style="font-size:0.8rem;color:var(--muted)" id="match-count"></div>
+  </div>
+  <div id="history-pills" class="pills"></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>日付</th><th>マップ</th>
+          <th colspan="5" style="color:var(--team-a)">TEAM A</th>
+          <th colspan="5" style="color:var(--team-b)">TEAM B</th>
+          <th>勝者</th>
+        </tr>
+        <tr>
+          <th></th><th></th><th></th>
+          <th>Tank</th><th>DPS1</th><th>DPS2</th><th>Sup1</th><th>Sup2</th>
+          <th>Tank</th><th>DPS1</th><th>DPS2</th><th>Sup1</th><th>Sup2</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="history-body"><tr><td colspan="14" class="loading">⏳ データ読み込み中...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- STATS -->
+<div id="view-stats" class="view">
+  <div class="sh">
+    <h2>⚡ ロール別勝率</h2>
+    <div class="frow">
+      <select id="fp" onchange="renderStats()"><option value="">全プレイヤー</option></select>
+      <select id="fr" onchange="renderStats()">
+        <option value="">全ロール</option>
+        <option value="Tank">Tank</option>
+        <option value="DPS">DPS</option>
+        <option value="Support">Support</option>
+      </select>
+    </div>
+  </div>
+  <div id="stats-container"><div class="loading">⏳ データ読み込み中...</div></div>
+</div>
+
+<!-- PAIR -->
+<div id="view-pair" class="view">
+  <div class="sh">
+    <h2>🤝 ペア分析</h2>
+    <div class="frow">
+      <select id="pfp" onchange="renderPair()"><option value="">全プレイヤー</option></select>
+      <select id="pfs" onchange="renderPair()">
+        <option value="same">同チームのみ</option>
+        <option value="enemy">敵チームのみ</option>
+        <option value="all">両方</option>
+      </select>
+      <select id="pso" onchange="renderPair()">
+        <option value="count">試合数順</option>
+        <option value="winrate">勝率順</option>
+      </select>
+    </div>
+  </div>
+  <div id="pair-container"><div class="loading">⏳ データ読み込み中...</div></div>
+</div>
+
+<script>
+// ======================================================
+// GitHubにpushしたJSONのraw URLをここに設定してください
+// 例: 'https://raw.githubusercontent.com/yourname/ow-tracker/main/data.json'
+// ローカルで開く場合はファイルと同じフォルダに data.json を置いてください
+// ======================================================
+var DATA_URL = '/json/data.json';
+
+var players = [];
+var matches = [];
+
+// ===== LOAD =====
+function loadData() {
+  fetch(DATA_URL)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      players = data.players || [];
+      matches = data.matches || [];
+      init();
+    })
+    .catch(function(e) {
+      document.getElementById('history-body').innerHTML =
+        '<tr><td colspan="14" style="padding:40px;color:var(--lose);text-align:center">❌ データの読み込みに失敗しました<br><small style="color:var(--muted)">' + e.message + '</small></td></tr>';
+      document.getElementById('stats-container').innerHTML =
+        '<div class="empty"><div class="ei">❌</div>データの読み込みに失敗しました</div>';
+      document.getElementById('pair-container').innerHTML =
+        '<div class="empty"><div class="ei">❌</div>データの読み込みに失敗しました</div>';
+    });
+}
+
+function init() {
+  // プレイヤーセレクト構築
+  ['fp','pfp'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.innerHTML = '<option value="">全プレイヤー</option>';
+    players.forEach(function(p) {
+      var o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      el.appendChild(o);
+    });
+  });
+  renderHistory();
+  renderStats();
+  renderPair();
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+  var names = ['history','stats','pair'];
+  document.querySelectorAll('.tab').forEach(function(t,i){
+    t.classList.toggle('active', names[i]===tab);
+  });
+  document.querySelectorAll('.view').forEach(function(v,i){
+    v.classList.toggle('active', names[i]===tab);
+  });
+}
+
+// ===== HISTORY =====
+function renderHistory() {
+  var winA = matches.filter(function(m){return m.winner==='A';}).length;
+  var winB = matches.length - winA;
+  document.getElementById('match-count').textContent = matches.length + ' 試合';
+  document.getElementById('history-pills').innerHTML =
+    pill(matches.length,'総試合数') +
+    pill('<span style="color:var(--team-a)">'+winA+'</span>','TEAM A 勝利') +
+    pill('<span style="color:var(--team-b)">'+winB+'</span>','TEAM B 勝利');
+
+  var tbody = document.getElementById('history-body');
+  if (!matches.length) {
+    tbody.innerHTML='<tr><td colspan="14" style="padding:40px;color:var(--muted)">データがありません</td></tr>'; return;
+  }
+  function pc(v,r){
+    if(!v) return '<td style="color:var(--muted)">-</td>';
+    return '<td class="'+(r==='tank'?'tt':r==='dps'?'td':'ts')+'">'+v+'</td>';
+  }
+  tbody.innerHTML = matches.map(function(m,i){
+    return '<tr>'+
+      '<td style="color:var(--muted)">'+(matches.length-i)+'</td>'+
+      '<td style="color:var(--muted);font-size:0.76rem">'+m.date+'</td>'+
+      '<td><span class="mbadge">'+m.map+'</span></td>'+
+      pc(m.teamA.tank,'tank')+pc(m.teamA.dps1,'dps')+pc(m.teamA.dps2,'dps')+pc(m.teamA.sup1,'sup')+pc(m.teamA.sup2,'sup')+
+      pc(m.teamB.tank,'tank')+pc(m.teamB.dps1,'dps')+pc(m.teamB.dps2,'dps')+pc(m.teamB.sup1,'sup')+pc(m.teamB.sup2,'sup')+
+      '<td class="'+(m.winner==='A'?'wa':'wb')+'">'+(m.winner==='A'?'TEAM A':'TEAM B')+'</td>'+
+    '</tr>';
+  }).join('');
+}
+
+function pill(val, lbl) {
+  return '<div class="pill"><div class="pv">'+val+'</div><div class="pl">'+lbl+'</div></div>';
+}
+
+// ===== STATS =====
+function getStats(player) {
+  var s={Tank:{w:0,l:0},DPS:{w:0,l:0},Support:{w:0,l:0}};
+  var rmap=[{k:'tank',r:'Tank'},{k:'dps1',r:'DPS'},{k:'dps2',r:'DPS'},{k:'sup1',r:'Support'},{k:'sup2',r:'Support'}];
+  matches.forEach(function(m){
+    [{t:m.teamA,s:'A'},{t:m.teamB,s:'B'}].forEach(function(x){
+      rmap.forEach(function(rm){
+        if(x.t[rm.k]===player){ if(m.winner===x.s) s[rm.r].w++; else s[rm.r].l++; }
+      });
+    });
+  });
+  return s;
+}
+
+function renderStats() {
+  var container = document.getElementById('stats-container');
+  var fp = document.getElementById('fp').value;
+  var fr = document.getElementById('fr').value;
+  var plist = fp ? [fp] : players;
+  var roles = fr ? [fr] : ['Tank','DPS','Support'];
+  var rc={Tank:'var(--tank)',DPS:'var(--dps)',Support:'var(--sup)'};
+  var ri={Tank:'🛡️',DPS:'💥',Support:'💚'};
+  var html='';
+  plist.forEach(function(player){
+    var s=getStats(player);
+    var chips=roles.map(function(role){
+      var w=s[role].w,l=s[role].l,tot=w+l;
+      if(!tot) return '';
+      var pct=Math.round(w/tot*100);
+      var cls=pct>=60?'hi':pct>=40?'mi':'lo';
+      return '<div class="chip">'+
+        '<div class="rn" style="color:'+rc[role]+'">'+ri[role]+' '+role+'</div>'+
+        '<div class="wr '+cls+'">'+pct+'%</div>'+
+        '<div class="rc">'+w+'勝 '+l+'敗 / '+tot+'試</div>'+
+        '<div class="wbar"><div class="wfill" style="width:'+pct+'%;background:'+rc[role]+'"></div></div>'+
+      '</div>';
+    }).join('');
+    if(!chips.trim()) return;
+    html+='<div class="pcard"><div class="pname">👤 '+player+'</div><div class="rchips">'+chips+'</div></div>';
+  });
+  container.innerHTML = html || '<div class="empty"><div class="ei">🔍</div>条件に一致するデータがありません</div>';
+}
+
+// ===== PAIR =====
+function renderPair() {
+  var container=document.getElementById('pair-container');
+  var fp=document.getElementById('pfp').value;
+  var flt=document.getElementById('pfs').value;
+  var srt=document.getElementById('pso').value;
+  var pm={};
+  function pk(a,b){return [a,b].sort().join('|');}
+  matches.forEach(function(m){
+    var aM=[m.teamA.tank,m.teamA.dps1,m.teamA.dps2,m.teamA.sup1,m.teamA.sup2].filter(Boolean);
+    var bM=[m.teamB.tank,m.teamB.dps1,m.teamB.dps2,m.teamB.sup1,m.teamB.sup2].filter(Boolean);
+    var winA=m.winner==='A';
+    [aM,bM].forEach(function(team,ti){
+      var won=ti===0?winA:!winA;
+      for(var i=0;i<team.length;i++) for(var j=i+1;j<team.length;j++){
+        var k=pk(team[i],team[j]);
+        if(!pm[k]) pm[k]={same:{w:0,l:0},enemy:{w:0,l:0}};
+        if(won) pm[k].same.w++; else pm[k].same.l++;
+      }
+    });
+    aM.forEach(function(ap){bM.forEach(function(bp){
+      var k=pk(ap,bp);
+      if(!pm[k]) pm[k]={same:{w:0,l:0},enemy:{w:0,l:0}};
+      var p1=k.split('|')[0];
+      if(p1===ap){if(winA) pm[k].enemy.w++; else pm[k].enemy.l++;}
+      else{if(!winA) pm[k].enemy.w++; else pm[k].enemy.l++;}
+    });});
+  });
+  var entries=[];
+  Object.keys(pm).forEach(function(k){
+    var v=pm[k],parts=k.split('|'),p1=parts[0],p2=parts[1];
+    if(fp && p1!==fp && p2!==fp) return;
+    if(flt!=='enemy'&&(v.same.w+v.same.l)>0){
+      var t=v.same.w+v.same.l;
+      entries.push({p1:p1,p2:p2,type:'same',w:v.same.w,l:v.same.l,tot:t,pct:Math.round(v.same.w/t*100)});
+    }
+    if(flt!=='same'&&(v.enemy.w+v.enemy.l)>0){
+      var t2=v.enemy.w+v.enemy.l;
+      entries.push({p1:p1,p2:p2,type:'enemy',w:v.enemy.w,l:v.enemy.l,tot:t2,pct:Math.round(v.enemy.w/t2*100)});
+    }
+  });
+  entries.sort(function(a,b){return srt==='winrate'?b.pct-a.pct:b.tot-a.tot;});
+  if(!entries.length){
+    container.innerHTML='<div class="empty"><div class="ei">🔍</div>条件に一致するデータがありません</div>'; return;
+  }
+  container.innerHTML=entries.map(function(e){
+    var wc=e.pct>=60?'var(--win)':e.pct>=40?'var(--accent)':'var(--lose)';
+    var lbl=e.type==='same'?'同チーム':'敵対';
+    var vcls=e.type==='enemy'?' en':'';
+    var n1=fp===e.p1?'<span style="color:var(--accent2)">'+e.p1+'</span>':e.p1;
+    var n2=fp===e.p2?'<span style="color:var(--accent2)">'+e.p2+'</span>':e.p2;
+    return '<div class="paircard">'+
+      '<div class="pairnames">'+
+        '<div style="font-weight:700">'+n1+'</div>'+
+        '<div class="pvs'+vcls+'">'+lbl+'</div>'+
+        '<div style="font-weight:700">'+n2+'</div>'+
+      '</div>'+
+      '<div class="pairstats">'+
+        '<div class="ps"><div class="v">'+e.tot+'</div><div class="l">試合</div></div>'+
+        '<div class="ps"><div class="v" style="color:var(--win)">'+e.w+'</div><div class="l">勝利</div></div>'+
+        '<div class="ps"><div class="v" style="color:var(--lose)">'+e.l+'</div><div class="l">敗北</div></div>'+
+        '<div class="ps"><div class="v" style="color:'+wc+'">'+e.pct+'%</div><div class="l">勝率</div></div>'+
+        '<div class="pwbar"><div class="pwfill" style="width:'+e.pct+'%;background:'+wc+'"></div></div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ===== START =====
+loadData();
+</script>
+</body>
+</html>
