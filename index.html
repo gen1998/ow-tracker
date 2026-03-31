@@ -129,6 +129,13 @@ tr:hover td{background:rgba(255,255,255,0.02);}
         <option value="DPS">DPS</option>
         <option value="Support">Support</option>
       </select>
+      <select id="fso" onchange="renderStats()">
+        <option value="games">試合数順</option>
+        <option value="all">全体勝率順</option>
+        <option value="Tank">Tank勝率順</option>
+        <option value="DPS">DPS勝率順</option>
+        <option value="Support">Support勝率順</option>
+      </select>
     </div>
   </div>
   <div id="stats-container"><div class="loading">⏳ データ読み込み中...</div></div>
@@ -266,10 +273,27 @@ function renderStats() {
   var container = document.getElementById('stats-container');
   var fp = document.getElementById('fp').value;
   var fr = document.getElementById('fr').value;
-  var plist = fp ? [fp] : players;
+  var fso = document.getElementById('fso').value;
+  var plist = fp ? [fp] : players.slice();
   var roles = fr ? [fr] : ['Tank','DPS','Support'];
   var rc={Tank:'var(--tank)',DPS:'var(--dps)',Support:'var(--sup)'};
   var ri={Tank:'🛡️',DPS:'💥',Support:'💚'};
+
+  function sortKey(player) {
+    var s = getStats(player);
+    if (fso === 'all') {
+      var tw=0, tl=0;
+      ['Tank','DPS','Support'].forEach(function(r){ tw+=s[r].w; tl+=s[r].l; });
+      var tot=tw+tl; return tot ? tw/tot : -1;
+    }
+    if (fso === 'Tank' || fso === 'DPS' || fso === 'Support') {
+      var w=s[fso].w, l=s[fso].l, tot2=w+l; return tot2 ? w/tot2 : -1;
+    }
+    var g=0; ['Tank','DPS','Support'].forEach(function(r){ g+=s[r].w+s[r].l; }); return g;
+  }
+
+  if (!fp) plist.sort(function(a,b){ return sortKey(b)-sortKey(a); });
+
   var html='';
   plist.forEach(function(player){
     var s=getStats(player);

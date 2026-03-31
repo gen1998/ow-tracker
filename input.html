@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OW カスタムマッチ トラッカー</title>
+<style>
+:root {
+  --bg:#0a0c14; --bg2:#111422; --bg3:#181c2e; --border:#2a2f4a;
+  --accent:#f5a623; --accent2:#4fc3f7; --team-a:#4fc3f7; --team-b:#f97316;
+  --win:#4ade80; --lose:#f87171; --text:#e2e8f0; --muted:#64748b;
+  --tank:#a78bfa; --dps:#f87171; --sup:#34d399;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+header{background:linear-gradient(135deg,#0d1b2a,#1a1f3a);border-bottom:2px solid var(--accent);padding:14px 24px;display:flex;align-items:center;gap:12px;}
+header h1{font-size:1.4rem;font-weight:700;letter-spacing:2px;color:var(--accent);}
+header .sub{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;}
+.tab{padding:11px 20px;font-size:0.85rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;user-select:none;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.view{display:none;padding:20px;max-width:1200px;margin:0 auto;}
+.view.active{display:block;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;}
+.card h2{font-size:0.95rem;font-weight:700;letter-spacing:1px;color:var(--accent2);margin-bottom:14px;}
+.row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.fg{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px;}
+.fg label{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;font-weight:600;}
+select,input[type=date],input[type=text]{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:0.88rem;font-family:inherit;outline:none;width:100%;}
+select:focus,input:focus{border-color:var(--accent2);}
+.teams-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.team-card{background:var(--bg3);border-radius:10px;padding:16px;border-top:3px solid var(--team-a);}
+.team-card.b{border-top-color:var(--team-b);}
+.team-label{font-size:0.95rem;font-weight:700;letter-spacing:1.5px;margin-bottom:12px;color:var(--team-a);}
+.team-card.b .team-label{color:var(--team-b);}
+.role-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.rbadge{font-size:0.65rem;font-weight:700;padding:3px 7px;border-radius:4px;min-width:56px;text-align:center;}
+.rbadge.tank{background:#2d1f6e;color:var(--tank);border:1px solid var(--tank);}
+.rbadge.dps{background:#3d1515;color:var(--dps);border:1px solid var(--dps);}
+.rbadge.sup{background:#0f3d2a;color:var(--sup);border:1px solid var(--sup);}
+.role-row select{flex:1;}
+.winner-row{display:flex;gap:10px;}
+.wbtn{flex:1;padding:10px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:0.95rem;font-weight:700;cursor:pointer;}
+.wbtn.a:hover,.wbtn.a.sel{border-color:var(--team-a);color:var(--team-a);background:rgba(79,195,247,0.08);}
+.wbtn.b:hover,.wbtn.b.sel{border-color:var(--team-b);color:var(--team-b);background:rgba(249,115,22,0.08);}
+.btn{display:block;width:100%;padding:11px;border:none;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:1px;font-family:inherit;}
+.btn-p{background:linear-gradient(135deg,var(--accent),#e08000);color:#000;}
+.btn-p:hover{opacity:0.88;}
+.btn-s{background:transparent;border:1px solid var(--border);color:var(--text);width:auto;display:inline-block;padding:9px 18px;margin-top:0;}
+.btn-s:hover{border-color:var(--accent2);color:var(--accent2);}
+.btn-d{background:transparent;border:1px solid #3d1515;color:var(--lose);width:auto;display:inline-block;padding:9px 18px;margin-top:0;}
+.btn-d:hover{background:rgba(248,113,113,0.1);}
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+th{background:var(--bg3);padding:9px 10px;text-align:center;color:var(--muted);font-weight:600;font-size:0.7rem;letter-spacing:0.5px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(42,47,74,0.5);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.tt{color:var(--tank);font-weight:600;} .td{color:var(--dps);font-weight:600;} .ts{color:var(--sup);font-weight:600;}
+.wa{color:var(--team-a);font-weight:700;} .wb{color:var(--team-b);font-weight:700;}
+.dbtn{background:transparent;border:1px solid #3d1515;color:var(--dps);border-radius:4px;padding:2px 7px;cursor:pointer;font-size:0.72rem;}
+.dbtn:hover{background:rgba(248,113,113,0.15);}
+.mbadge{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:0.76rem;color:var(--accent2);}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.sh h2{font-size:1.1rem;font-weight:700;color:var(--accent);}
+.frow{display:flex;gap:8px;flex-wrap:wrap;}
+.frow select{padding:6px 8px;font-size:0.8rem;width:auto;}
+.pcard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;}
+.pname{font-size:1rem;font-weight:700;margin-bottom:10px;}
+.rchips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{background:var(--bg3);border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:88px;border:1px solid var(--border);}
+.chip .rn{font-size:0.67rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.chip .wr{font-size:1.35rem;font-weight:700;line-height:1;}
+.chip .rc{font-size:0.7rem;color:var(--muted);}
+.wr.hi{color:var(--win);} .wr.mi{color:var(--accent);} .wr.lo{color:var(--lose);}
+.wbar{height:4px;background:var(--border);border-radius:2px;width:100%;margin-top:3px;overflow:hidden;}
+.wfill{height:100%;border-radius:2px;}
+.paircard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.paircard:hover{border-color:var(--accent2);}
+.pairnames{display:flex;align-items:center;gap:10px;flex:1;min-width:200px;}
+.pvs{font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);}
+.pvs.en{color:var(--lose);border-color:var(--lose);background:rgba(248,113,113,0.06);}
+.pairstats{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.ps{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;}
+.ps .v{font-size:1.2rem;font-weight:700;line-height:1;}
+.ps .l{font-size:0.67rem;color:var(--muted);text-transform:uppercase;}
+.pwbar{flex:1;min-width:70px;max-width:120px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.pwfill{height:100%;border-radius:3px;}
+.data-note{font-size:0.8rem;color:var(--muted);line-height:1.7;margin-bottom:14px;}
+.drop{border:2px dashed var(--border);border-radius:8px;padding:18px;text-align:center;color:var(--muted);font-size:0.82rem;margin-top:12px;cursor:pointer;}
+.drop:hover{border-color:var(--accent2);color:var(--accent2);}
+.srow{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+.snum{color:var(--muted);font-size:0.78rem;min-width:22px;}
+.empty{text-align:center;padding:44px 0;color:var(--muted);font-size:0.88rem;}
+.empty .ei{font-size:2.2rem;margin-bottom:10px;}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--bg3);border:1px solid var(--win);color:var(--win);padding:10px 18px;border-radius:8px;font-size:0.82rem;opacity:0;transform:translateY(8px);transition:all 0.3s;pointer-events:none;z-index:999;}
+.toast.show{opacity:1;transform:translateY(0);}
+.file-status-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+@media(max-width:640px){.teams-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="font-size:1.5rem">⚔️</div>
+  <div>
+    <h1>OW CUSTOM TRACKER</h1>
+    <div class="sub">カスタムマッチ 記録・勝率管理</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('input')">📝 試合入力</div>
+  <div class="tab" onclick="switchTab('history')">📋 履歴</div>
+  <div class="tab" onclick="switchTab('stats')">📊 勝率</div>
+  <div class="tab" onclick="switchTab('pair')">🤝 ペア分析</div>
+  <div class="tab" onclick="switchTab('data')">💾 データ管理</div>
+  <div class="tab" onclick="switchTab('settings')">⚙️ 設定</div>
+</div>
+
+<!-- INPUT -->
+<div id="view-input" class="view active">
+  <div class="card">
+    <h2>🗺️ 基本情報</h2>
+    <div class="row">
+      <div class="fg" style="max-width:170px">
+        <label>日付</label>
+        <input type="date" id="inp-date">
+      </div>
+      <div class="fg">
+        <label>マップ</label>
+        <select id="inp-map">
+          <option value="">選択してください</option>
+          <optgroup label="コントロール">
+            <option>Busan</option><option>Ilios</option><option>Lijiang Tower</option>
+            <option>Nepal</option><option>Oasis</option><option>Antarctic Peninsula</option><option>Samoa</option>
+          </optgroup>
+          <optgroup label="ハイブリッド">
+            <option>Blizzard World</option><option>Eichenwalde</option><option>Hollywood</option>
+            <option>King's Row</option><option>Midtown</option><option>Numbani</option><option>Paraíso</option>
+          </optgroup>
+          <optgroup label="エスコート">
+            <option>Circuit Royal</option><option>Dorado</option><option>Havana</option>
+            <option>Junkertown</option><option>Rialto</option><option>Route 66</option>
+            <option>Shambali Monastery</option><option>Watchpoint: Gibraltar</option>
+          </optgroup>
+          <optgroup label="プッシュ">
+            <option>Colosseo</option><option>Esperança</option><option>New Queen Street</option><option>Runasapi</option>
+          </optgroup>
+          <optgroup label="フラッシュポイント">
+            <option>New Junk City</option><option>Suravasa</option>
+          </optgroup>
+          <option>その他</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="teams-grid">
+    <div class="team-card">
+      <div class="team-label">⬡ TEAM A</div>
+      <div class="role-row"><span class="rbadge tank">TANK</span><select id="a-tank" onchange="onSelectChange()"><option value="">-</option></select></div>
+      <div class="role-row"><span class="rbadge dps">DPS 1</span><select id="a-dps1" onchange="onSelectChange()"><option value="">-</option></select></div>
+      <div class="role-row"><span class="rbadge dps">DPS 2</span><select id="a-dps2" onchange="onSelectChange()"><option value="">-</option></select></div>
+      <div class="role-row"><span class="rbadge sup">SUP 1</span><select id="a-sup1" onchange="onSelectChange()"><option value="">-</option></select></div>
+      <div class="role-row"><span class="rbadge sup">SUP 2</span><select id="a-sup2" onchange="onSelectChange()"><option value="">-</option></select></div>
+    </div>
+    <div class="team-card b">
+      <div class="team-label">⬡ TEAM B</div>
+      <div class="role-row"><span class="rbadge tank">TANK</span><select id="b-tank" onchange="onSelectChange()"><option value="">-</option></select></div>
+      <div class="role-row"><span class="rbadge dps">DPS 1</span><select id="b-dps1" onchange="onSelectChange()"><option value="">-</option></select></div>
+      <div class="role-row"><span class="rbadge dps">DPS 2</span><select id="b-dps2" onchange="onSelectChange()"><option value="">-</option></select></div>
+      <div class="role-row"><span class="rbadge sup">SUP 1</span><select id="b-sup1" onchange="onSelectChange()"><option value="">-</option></select></div>
+      <div class="role-row"><span class="rbadge sup">SUP 2</span><select id="b-sup2" onchange="onSelectChange()"><option value="">-</option></select></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🏆 勝利チーム</h2>
+    <div class="winner-row">
+      <button class="wbtn a" id="btn-a" onclick="selectWinner('A')">✦ TEAM A 勝利</button>
+      <button class="wbtn b" id="btn-b" onclick="selectWinner('B')">✦ TEAM B 勝利</button>
+    </div>
+  </div>
+
+  <button class="btn btn-p" onclick="addMatch()">＋ 試合を記録する</button>
+</div>
+
+<!-- HISTORY -->
+<div id="view-history" class="view">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <div style="font-size:1.1rem;font-weight:700;color:var(--accent)">MATCH HISTORY</div>
+    <div style="font-size:0.8rem;color:var(--muted)" id="match-count"></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>日付</th><th>マップ</th>
+          <th colspan="5" style="color:var(--team-a)">TEAM A</th>
+          <th colspan="5" style="color:var(--team-b)">TEAM B</th>
+          <th>勝者</th><th></th>
+        </tr>
+        <tr>
+          <th></th><th></th><th></th>
+          <th>Tank</th><th>DPS1</th><th>DPS2</th><th>Sup1</th><th>Sup2</th>
+          <th>Tank</th><th>DPS1</th><th>DPS2</th><th>Sup1</th><th>Sup2</th>
+          <th></th><th></th>
+        </tr>
+      </thead>
+      <tbody id="history-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- STATS -->
+<div id="view-stats" class="view">
+  <div class="sh">
+    <h2>⚡ ロール別勝率</h2>
+    <div class="frow">
+      <select id="fp" onchange="renderStats()"><option value="">全プレイヤー</option></select>
+      <select id="fr" onchange="renderStats()">
+        <option value="">全ロール</option>
+        <option value="Tank">Tank</option>
+        <option value="DPS">DPS</option>
+        <option value="Support">Support</option>
+      </select>
+      <select id="fso" onchange="renderStats()">
+        <option value="games">試合数順</option>
+        <option value="all">全体勝率順</option>
+        <option value="Tank">Tank勝率順</option>
+        <option value="DPS">DPS勝率順</option>
+        <option value="Support">Support勝率順</option>
+      </select>
+    </div>
+  </div>
+  <div id="stats-container"></div>
+</div>
+
+<!-- PAIR -->
+<div id="view-pair" class="view">
+  <div class="sh">
+    <h2>🤝 ペア分析</h2>
+    <div class="frow">
+      <select id="pfp" onchange="renderPair()"><option value="">全プレイヤー</option></select>
+      <select id="pfs" onchange="renderPair()">
+        <option value="same">同チームのみ</option>
+        <option value="enemy">敵チームのみ</option>
+        <option value="all">両方</option>
+      </select>
+      <select id="pso" onchange="renderPair()">
+        <option value="count">試合数順</option>
+        <option value="winrate">勝率順</option>
+      </select>
+    </div>
+  </div>
+  <div id="pair-container"></div>
+</div>
+
+<!-- DATA -->
+<div id="view-data" class="view">
+  <div class="card">
+    <h2>📁 データファイル連携</h2>
+    <p class="data-note">
+      ローカルの <strong>json/data.json</strong> と連携します。<br>
+      初回は「ファイルを選択」で <code>json/data.json</code> を指定してください。<br>
+      以降、試合の追加・削除・プレイヤー保存のたびに自動で書き込まれます。
+    </p>
+    <div class="file-status-row">
+      <span style="font-size:0.78rem;color:var(--muted)">状態：</span>
+      <span id="file-status" style="font-size:0.85rem;color:var(--muted)">未設定</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-s" onclick="selectDataFile()">📂 ファイルを選択</button>
+      <button class="btn btn-s" id="btn-reconnect" style="display:none" onclick="reconnectFile()">🔌 再接続する</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📤 エクスポート（ダウンロード）</h2>
+    <p class="data-note">現在の試合データをJSONファイルとしてダウンロードします。</p>
+    <button class="btn btn-s" onclick="exportData()">⬇️ JSONをダウンロード</button>
+  </div>
+  <div class="card">
+    <h2>📥 インポート</h2>
+    <p class="data-note">保存したJSONファイルを読み込みます。<br>⚠️ 既存データに<strong style="color:var(--accent)">追記</strong>されます（重複は自動スキップ）。</p>
+    <input type="file" id="file-input" accept=".json" onchange="importData(event)"
+      style="display:block;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--muted);font-size:0.85rem;width:100%;cursor:pointer;">
+    <div class="drop" id="drop-zone">📂 ここにJSONファイルをドロップしても読み込めます</div>
+  </div>
+  <div class="card">
+    <h2>🗑️ データリセット</h2>
+    <p class="data-note">全ての試合データを削除します。この操作は取り消せません。</p>
+    <button class="btn btn-d" onclick="resetData()">全データを削除する</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="view-settings" class="view">
+  <div class="card">
+    <h2>👥 プレイヤー名の設定</h2>
+    <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">最大15人分のプレイヤー名を入力して保存してください</p>
+    <div id="player-inputs"></div>
+    <button class="btn btn-p" style="margin-top:12px" onclick="savePlayers()">💾 保存する</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var MAX_PLAYERS = 15;
+
+// プレイヤー: localStorageから復元、足りない分はデフォルト名で補完
+var players = (function() {
+  var saved = JSON.parse(localStorage.getItem('ow_players') || 'null');
+  var arr = saved || [];
+  while (arr.length < MAX_PLAYERS) arr.push('Player' + (arr.length + 1));
+  return arr;
+})();
+
+var matches = JSON.parse(localStorage.getItem('ow_matches') || '[]');
+var winner = null;
+var RIDS = ['a-tank','a-dps1','a-dps2','a-sup1','a-sup2','b-tank','b-dps1','b-dps2','b-sup1','b-sup2'];
+
+// ── localStorage ─────────────────────────────────────────
+function savePlayersLocal() { localStorage.setItem('ow_players', JSON.stringify(players)); }
+function saveMatchesLocal() { localStorage.setItem('ow_matches', JSON.stringify(matches)); }
+
+// ── File System Access API ────────────────────────────────
+var fileHandle = null;
+var _idb = null;
+
+function openIDB(cb) {
+  if (_idb) { cb(_idb); return; }
+  var req = indexedDB.open('ow-tracker-db', 1);
+  req.onupgradeneeded = function(e) { e.target.result.createObjectStore('handles'); };
+  req.onsuccess = function(e) { _idb = e.target.result; cb(_idb); };
+  req.onerror = function() { cb(null); };
+}
+
+function storeHandle(handle) {
+  openIDB(function(db) {
+    if (!db) return;
+    db.transaction('handles', 'readwrite').objectStore('handles').put(handle, 'dataFile');
+  });
+}
+
+function loadStoredHandle(cb) {
+  openIDB(function(db) {
+    if (!db) { cb(null); return; }
+    var req = db.transaction('handles', 'readonly').objectStore('handles').get('dataFile');
+    req.onsuccess = function() { cb(req.result || null); };
+    req.onerror = function() { cb(null); };
+  });
+}
+
+function updateFileStatus(status, name) {
+  var el = document.getElementById('file-status');
+  var btnR = document.getElementById('btn-reconnect');
+  if (!el) return;
+  if (status === 'connected') {
+    el.innerHTML = '<span style="color:var(--win)">✔ 接続中: ' + escHtml(name || '') + '</span>';
+    if (btnR) btnR.style.display = 'none';
+  } else if (status === 'prompt') {
+    el.innerHTML = '<span style="color:var(--accent)">⚠ ' + escHtml(name || '') + '（再接続が必要）</span>';
+    if (btnR) btnR.style.display = '';
+  } else {
+    el.innerHTML = '<span style="color:var(--muted)">未設定</span>';
+    if (btnR) btnR.style.display = 'none';
+  }
+}
+
+async function tryAutoLoad() {
+  if (!window.showOpenFilePicker) { updateFileStatus('none'); return; }
+  loadStoredHandle(async function(handle) {
+    if (!handle) { updateFileStatus('none'); return; }
+    fileHandle = handle;
+    try {
+      var perm = await handle.queryPermission({ mode: 'readwrite' });
+      if (perm === 'granted') {
+        var file = await handle.getFile();
+        var text = await file.text();
+        doImport(text, true, true, true); // silent, updatePlayers, replace
+        updateFileStatus('connected', handle.name);
+      } else {
+        updateFileStatus('prompt', handle.name);
+      }
+    } catch(e) {
+      fileHandle = null;
+      updateFileStatus('none');
+    }
+  });
+}
+
+async function reconnectFile() {
+  if (!fileHandle) return;
+  try {
+    var perm = await fileHandle.requestPermission({ mode: 'readwrite' });
+    if (perm === 'granted') {
+      var file = await fileHandle.getFile();
+      var text = await file.text();
+      doImport(text, true, true, true);
+      updateFileStatus('connected', fileHandle.name);
+      toast('✔ ファイルに接続しました！');
+    }
+  } catch(e) { toast('❌ 接続に失敗しました', true); }
+}
+
+async function selectDataFile() {
+  if (!window.showOpenFilePicker) {
+    toast('❌ このブラウザはFile APIに非対応です（Chromeを使用してください）', true); return;
+  }
+  try {
+    var handles = await window.showOpenFilePicker({
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+      multiple: false
+    });
+    var handle = handles[0];
+    fileHandle = handle;
+    storeHandle(handle);
+    var file = await handle.getFile();
+    var text = await file.text();
+    doImport(text, false, true, true);
+    updateFileStatus('connected', handle.name);
+    toast('✔ データファイルを設定しました！');
+  } catch(e) {
+    if (e.name !== 'AbortError') toast('❌ ファイル選択に失敗しました', true);
+  }
+}
+
+async function autoSave() {
+  if (!fileHandle) return;
+  try {
+    var perm = await fileHandle.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') {
+      perm = await fileHandle.requestPermission({ mode: 'readwrite' });
+    }
+    if (perm !== 'granted') return;
+    var data = { version: 1, exportedAt: new Date().toISOString(), players: players, matches: matches };
+    var writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+  } catch(e) { console.warn('autoSave failed', e); }
+}
+
+function saveMatches() {
+  saveMatchesLocal();
+  autoSave();
+}
+
+// ── 初期化 ───────────────────────────────────────────────
+window.onload = function() {
+  document.getElementById('inp-date').value = new Date().toISOString().slice(0,10);
+  rebuildSelects();
+  buildSettings();
+  renderHistory();
+  renderStats();
+  renderPair();
+  setupDrop();
+  tryAutoLoad();
+};
+
+function switchTab(tab) {
+  var names = ['input','history','stats','pair','data','settings'];
+  var tabs = document.querySelectorAll('.tab');
+  var views = document.querySelectorAll('.view');
+  for (var i = 0; i < names.length; i++) {
+    tabs[i].classList.toggle('active', names[i] === tab);
+    views[i].classList.toggle('active', names[i] === tab);
+  }
+  if (tab === 'history')  renderHistory();
+  if (tab === 'stats')    renderStats();
+  if (tab === 'pair')     renderPair();
+  if (tab === 'settings') buildSettings();
+}
+
+// ── プレイヤー選択（排他制御）───────────────────────────
+function onSelectChange() {
+  rebuildSelects();
+}
+
+function rebuildSelects() {
+  // 現在選ばれているプレイヤーとどのselectに入っているか
+  var selectedIn = {};
+  RIDS.forEach(function(id) {
+    var v = document.getElementById(id).value;
+    if (v) selectedIn[v] = id;
+  });
+
+  RIDS.forEach(function(id) {
+    var el = document.getElementById(id);
+    var cur = el.value;
+    el.innerHTML = '<option value="">-</option>';
+    players.forEach(function(p) {
+      // 別のselectで選択済みならスキップ
+      if (selectedIn[p] && selectedIn[p] !== id) return;
+      var o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      if (p === cur) o.selected = true;
+      el.appendChild(o);
+    });
+  });
+
+  // フィルター用selectは排他不要
+  ['fp','pfp'].forEach(function(id) {
+    var el = document.getElementById(id);
+    var cur = el.value;
+    el.innerHTML = '<option value="">全プレイヤー</option>';
+    players.forEach(function(p) {
+      var o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      if (p === cur) o.selected = true;
+      el.appendChild(o);
+    });
+  });
+}
+
+// ── 設定 ─────────────────────────────────────────────────
+function buildSettings() {
+  document.getElementById('player-inputs').innerHTML = players.map(function(p, i) {
+    return '<div class="srow"><span class="snum">' + (i+1) + '</span>' +
+      '<input type="text" id="pn' + i + '" value="' + escHtml(p) + '" placeholder="Player' + (i+1) + '"></div>';
+  }).join('');
+}
+
+function savePlayers() {
+  var newPlayers = [];
+  for (var i = 0; i < MAX_PLAYERS; i++) {
+    var v = document.getElementById('pn'+i).value.trim();
+    newPlayers.push(v || ('Player'+(i+1)));
+  }
+  players = newPlayers;
+  savePlayersLocal();
+  rebuildSelects();
+  autoSave();
+  toast('✔ プレイヤー名を保存しました！');
+}
+
+// ── 試合入力 ─────────────────────────────────────────────
+function selectWinner(t) {
+  winner = t;
+  document.getElementById('btn-a').classList.toggle('sel', t === 'A');
+  document.getElementById('btn-b').classList.toggle('sel', t === 'B');
+}
+
+function gv(id){ return document.getElementById(id).value; }
+
+function addMatch() {
+  var date = gv('inp-date'), map = gv('inp-map');
+  if (!date || !map) { toast('日付とマップを入力してください', true); return; }
+  if (!winner)       { toast('勝利チームを選択してください', true); return; }
+  matches.unshift({
+    id: Date.now(), date: date, map: map,
+    teamA:{tank:gv('a-tank'),dps1:gv('a-dps1'),dps2:gv('a-dps2'),sup1:gv('a-sup1'),sup2:gv('a-sup2')},
+    teamB:{tank:gv('b-tank'),dps1:gv('b-dps1'),dps2:gv('b-dps2'),sup1:gv('b-sup1'),sup2:gv('b-sup2')},
+    winner: winner
+  });
+  saveMatches();
+  RIDS.forEach(function(id){ document.getElementById(id).value=''; });
+  winner = null;
+  document.getElementById('btn-a').classList.remove('sel');
+  document.getElementById('btn-b').classList.remove('sel');
+  rebuildSelects();
+  toast('✔ 試合を記録しました！');
+}
+
+function deleteMatch(id) {
+  if (!confirm('この試合を削除しますか？')) return;
+  matches = matches.filter(function(m){ return m.id !== id; });
+  saveMatches(); renderHistory(); renderStats(); renderPair();
+}
+
+// ── 履歴 ─────────────────────────────────────────────────
+function renderHistory() {
+  document.getElementById('match-count').textContent = matches.length + ' 試合';
+  var tbody = document.getElementById('history-body');
+  if (!matches.length) {
+    tbody.innerHTML = '<tr><td colspan="15" style="padding:40px;color:var(--muted)">まだ記録がありません</td></tr>';
+    return;
+  }
+  function pc(v,r){
+    if(!v) return '<td style="color:var(--muted)">-</td>';
+    var c = r==='tank'?'tt':r==='dps'?'td':'ts';
+    return '<td class="'+c+'">'+escHtml(v)+'</td>';
+  }
+  tbody.innerHTML = matches.map(function(m,i){
+    return '<tr>'+
+      '<td style="color:var(--muted)">'+(matches.length-i)+'</td>'+
+      '<td style="color:var(--muted);font-size:0.76rem">'+escHtml(m.date)+'</td>'+
+      '<td><span class="mbadge">'+escHtml(m.map)+'</span></td>'+
+      pc(m.teamA.tank,'tank')+pc(m.teamA.dps1,'dps')+pc(m.teamA.dps2,'dps')+pc(m.teamA.sup1,'sup')+pc(m.teamA.sup2,'sup')+
+      pc(m.teamB.tank,'tank')+pc(m.teamB.dps1,'dps')+pc(m.teamB.dps2,'dps')+pc(m.teamB.sup1,'sup')+pc(m.teamB.sup2,'sup')+
+      '<td class="'+(m.winner==='A'?'wa':'wb')+'">'+(m.winner==='A'?'TEAM A':'TEAM B')+'</td>'+
+      '<td><button class="dbtn" onclick="deleteMatch('+m.id+')">✕</button></td>'+
+    '</tr>';
+  }).join('');
+}
+
+// ── 勝率 ─────────────────────────────────────────────────
+function getStats(player) {
+  var s = {Tank:{w:0,l:0},DPS:{w:0,l:0},Support:{w:0,l:0}};
+  var rmap = [{k:'tank',r:'Tank'},{k:'dps1',r:'DPS'},{k:'dps2',r:'DPS'},{k:'sup1',r:'Support'},{k:'sup2',r:'Support'}];
+  matches.forEach(function(m){
+    [{t:m.teamA,s:'A'},{t:m.teamB,s:'B'}].forEach(function(x){
+      rmap.forEach(function(rm){
+        if(x.t[rm.k]===player){ if(m.winner===x.s) s[rm.r].w++; else s[rm.r].l++; }
+      });
+    });
+  });
+  return s;
+}
+
+function renderStats() {
+  var container = document.getElementById('stats-container');
+  if(!matches.length){
+    container.innerHTML='<div class="empty"><div class="ei">📊</div>試合を記録すると勝率が表示されます</div>'; return;
+  }
+  var fp = gv('fp'), fr = gv('fr'), fso = gv('fso');
+  var plist = fp ? [fp] : players.slice();
+  var roles = fr ? [fr] : ['Tank','DPS','Support'];
+  var rc = {Tank:'var(--tank)',DPS:'var(--dps)',Support:'var(--sup)'};
+  var ri = {Tank:'🛡️',DPS:'💥',Support:'💚'};
+
+  // ソートキーを計算
+  function sortKey(player) {
+    var s = getStats(player);
+    if (fso === 'all') {
+      var tw=0, tl=0;
+      ['Tank','DPS','Support'].forEach(function(r){ tw+=s[r].w; tl+=s[r].l; });
+      var tot=tw+tl; return tot ? tw/tot : -1;
+    }
+    if (fso === 'Tank' || fso === 'DPS' || fso === 'Support') {
+      var w=s[fso].w, l=s[fso].l, tot2=w+l; return tot2 ? w/tot2 : -1;
+    }
+    // games: 全試合数
+    var g=0; ['Tank','DPS','Support'].forEach(function(r){ g+=s[r].w+s[r].l; }); return g;
+  }
+
+  if (!fp) {
+    plist.sort(function(a, b){ return sortKey(b) - sortKey(a); });
+  }
+
+  var html = '';
+  plist.forEach(function(player){
+    var s = getStats(player);
+    var chips = roles.map(function(role){
+      var w=s[role].w, l=s[role].l, tot=w+l;
+      if(!tot) return '';
+      var pct=Math.round(w/tot*100);
+      var cls=pct>=60?'hi':pct>=40?'mi':'lo';
+      return '<div class="chip">'+
+        '<div class="rn" style="color:'+rc[role]+'">'+ri[role]+' '+role+'</div>'+
+        '<div class="wr '+cls+'">'+pct+'%</div>'+
+        '<div class="rc">'+w+'勝 '+l+'敗 / '+tot+'試</div>'+
+        '<div class="wbar"><div class="wfill" style="width:'+pct+'%;background:'+rc[role]+'"></div></div>'+
+      '</div>';
+    }).join('');
+    if(!chips.trim()) return;
+    html+='<div class="pcard"><div class="pname">👤 '+escHtml(player)+'</div><div class="rchips">'+chips+'</div></div>';
+  });
+  container.innerHTML = html || '<div class="empty"><div class="ei">🔍</div>条件に一致するデータがありません</div>';
+}
+
+// ── ペア分析 ─────────────────────────────────────────────
+function renderPair() {
+  var container = document.getElementById('pair-container');
+  if(!matches.length){
+    container.innerHTML='<div class="empty"><div class="ei">🤝</div>試合を記録するとペア分析が表示されます</div>'; return;
+  }
+  var fp=gv('pfp'), flt=gv('pfs'), srt=gv('pso');
+  var pm={};
+  function pk(a,b){ return [a,b].sort().join('|'); }
+  matches.forEach(function(m){
+    var aM=[m.teamA.tank,m.teamA.dps1,m.teamA.dps2,m.teamA.sup1,m.teamA.sup2].filter(Boolean);
+    var bM=[m.teamB.tank,m.teamB.dps1,m.teamB.dps2,m.teamB.sup1,m.teamB.sup2].filter(Boolean);
+    var winA=m.winner==='A';
+    [aM,bM].forEach(function(team,ti){
+      var won=ti===0?winA:!winA;
+      for(var i=0;i<team.length;i++) for(var j=i+1;j<team.length;j++){
+        var k=pk(team[i],team[j]);
+        if(!pm[k]) pm[k]={same:{w:0,l:0},enemy:{w:0,l:0}};
+        if(won) pm[k].same.w++; else pm[k].same.l++;
+      }
+    });
+    aM.forEach(function(ap){ bM.forEach(function(bp){
+      var k=pk(ap,bp);
+      if(!pm[k]) pm[k]={same:{w:0,l:0},enemy:{w:0,l:0}};
+      var p1=k.split('|')[0];
+      if(p1===ap){ if(winA) pm[k].enemy.w++; else pm[k].enemy.l++; }
+      else       { if(!winA) pm[k].enemy.w++; else pm[k].enemy.l++; }
+    }); });
+  });
+  var entries=[];
+  Object.keys(pm).forEach(function(k){
+    var v=pm[k], parts=k.split('|'), p1=parts[0], p2=parts[1];
+    if(fp && p1!==fp && p2!==fp) return;
+    if(flt!=='enemy' && (v.same.w+v.same.l)>0){
+      var t=v.same.w+v.same.l;
+      entries.push({p1:p1,p2:p2,type:'same',w:v.same.w,l:v.same.l,tot:t,pct:Math.round(v.same.w/t*100)});
+    }
+    if(flt!=='same' && (v.enemy.w+v.enemy.l)>0){
+      var t2=v.enemy.w+v.enemy.l;
+      entries.push({p1:p1,p2:p2,type:'enemy',w:v.enemy.w,l:v.enemy.l,tot:t2,pct:Math.round(v.enemy.w/t2*100)});
+    }
+  });
+  entries.sort(function(a,b){ return srt==='winrate'?b.pct-a.pct:b.tot-a.tot; });
+  if(!entries.length){
+    container.innerHTML='<div class="empty"><div class="ei">🔍</div>条件に一致するデータがありません</div>'; return;
+  }
+  container.innerHTML=entries.map(function(e){
+    var wc=e.pct>=60?'var(--win)':e.pct>=40?'var(--accent)':'var(--lose)';
+    var lbl=e.type==='same'?'同チーム':'敵対';
+    var vcls=e.type==='enemy'?' en':'';
+    var n1=fp===e.p1?'<span style="color:var(--accent2)">'+escHtml(e.p1)+'</span>':escHtml(e.p1);
+    var n2=fp===e.p2?'<span style="color:var(--accent2)">'+escHtml(e.p2)+'</span>':escHtml(e.p2);
+    return '<div class="paircard">'+
+      '<div class="pairnames">'+
+        '<div style="font-weight:700">'+n1+'</div>'+
+        '<div class="pvs'+vcls+'">'+lbl+'</div>'+
+        '<div style="font-weight:700">'+n2+'</div>'+
+      '</div>'+
+      '<div class="pairstats">'+
+        '<div class="ps"><div class="v">'+e.tot+'</div><div class="l">試合</div></div>'+
+        '<div class="ps"><div class="v" style="color:var(--win)">'+e.w+'</div><div class="l">勝利</div></div>'+
+        '<div class="ps"><div class="v" style="color:var(--lose)">'+e.l+'</div><div class="l">敗北</div></div>'+
+        '<div class="ps"><div class="v" style="color:'+wc+'">'+e.pct+'%</div><div class="l">勝率</div></div>'+
+        '<div class="pwbar"><div class="pwfill" style="width:'+e.pct+'%;background:'+wc+'"></div></div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ── データ管理 ───────────────────────────────────────────
+function exportData() {
+  var data={version:1,exportedAt:new Date().toISOString(),players:players,matches:matches};
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='ow_matches_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('✔ エクスポートしました！');
+}
+
+// silent: トーストを出さない / updatePlayers: playersも更新 / replace: matchesを置換
+function doImport(text, silent, updatePlayers, replace) {
+  try {
+    var data=JSON.parse(text);
+    if(!data.matches||!Array.isArray(data.matches)) throw new Error('invalid');
+
+    if(updatePlayers && data.players && Array.isArray(data.players)) {
+      players = data.players.slice();
+      while(players.length < MAX_PLAYERS) players.push('Player'+(players.length+1));
+      savePlayersLocal();
+      rebuildSelects();
+      buildSettings();
+    }
+
+    if(replace) {
+      matches = data.matches.slice().sort(function(a,b){ return b.id-a.id; });
+    } else {
+      var ids={};
+      matches.forEach(function(m){ ids[m.id]=true; });
+      var newM=data.matches.filter(function(m){ return !ids[m.id]; });
+      matches=matches.concat(newM).sort(function(a,b){ return b.id-a.id; });
+      if(!silent) toast('✔ '+newM.length+'試合をインポートしました！');
+    }
+
+    saveMatchesLocal();
+    renderHistory(); renderStats(); renderPair();
+  } catch(e) {
+    if(!silent) toast('❌ 読み込みに失敗しました', true);
+  }
+}
+
+function importData(e) {
+  var file=e.target.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(ev){ doImport(ev.target.result, false, false, false); };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+function resetData() {
+  if(!confirm('本当に全データ('+matches.length+'試合)を削除しますか？\nこの操作は取り消せません。')) return;
+  matches=[]; saveMatches();
+  renderHistory(); renderStats(); renderPair();
+  toast('🗑️ データを削除しました');
+}
+
+function setupDrop() {
+  var zone=document.getElementById('drop-zone');
+  zone.addEventListener('dragover',function(e){
+    e.preventDefault(); zone.style.borderColor='var(--accent2)'; zone.style.color='var(--accent2)';
+  });
+  zone.addEventListener('dragleave',function(){
+    zone.style.borderColor='var(--border)'; zone.style.color='var(--muted)';
+  });
+  zone.addEventListener('drop',function(e){
+    e.preventDefault(); zone.style.borderColor='var(--border)'; zone.style.color='var(--muted)';
+    var file=e.dataTransfer.files[0]; if(!file) return;
+    var reader=new FileReader();
+    reader.onload=function(ev){ doImport(ev.target.result, false, false, false); };
+    reader.readAsText(file);
+  });
+}
+
+// ── ユーティリティ ───────────────────────────────────────
+function escHtml(s) {
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg,isErr) {
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.borderColor=isErr?'var(--lose)':'var(--win)';
+  t.style.color=isErr?'var(--lose)':'var(--win)';
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2600);
+}
+</script>
+</body>
+</html>
